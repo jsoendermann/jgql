@@ -1,10 +1,12 @@
 {
   "name": "jgql",
-  "version": "0.0.1",
+  "version": "0.0.9",
   "main": "index.js",
   "license": "Apache-2.0",
   "scripts": {
-    "build": "tsc"
+    "build": "tsc --pretty",
+    "watch": "tsc --watch --pretty",
+    "prepare": "npm run build"
   },
   "dependencies": {
     "axios": "^0.18.0",
