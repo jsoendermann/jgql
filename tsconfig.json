@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "target": "es3",
+    "jsx": "react",
+    "module": "commonjs",
+    "declaration": true,
+    "strict": true,
+    "lib": ["es2015"]
+  }
+}
