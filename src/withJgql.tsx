@@ -62,16 +62,17 @@ export const withJgql = <D extends object = object, V extends object = object>(
     }
 
     fetchData = (variables?: any) => {
-      const newState: any = {
+      const newState: Partial<JgqlEnhancedFetchingComponentDataProps<D>> = {
         loadingState: 'LOADING',
-        errorMessage: null,
+        error: null,
       }
 
       if (options && options.resetDataAtStartOfFetch) {
         newState.data = null
       }
 
-      this.setState(newState, async () => {
+      this.setState(newState as any, async () => {
+        // TODO Fix type
         let vars: V
         if (variables) {
           vars = variables
@@ -87,6 +88,7 @@ export const withJgql = <D extends object = object, V extends object = object>(
             this.setState({
               loadingState: 'SUCCESS',
               data,
+              error: null,
             }),
           )
           .catch(error => this.setState({ loadingState: 'ERROR', error }))
