@@ -71,8 +71,8 @@ export const withJgql = <D extends object = object, V extends object = object>(
         newState.data = null
       }
 
+      // TODO Fix type
       this.setState(newState as any, async () => {
-        // TODO Fix type
         let vars: V
         if (variables) {
           vars = variables
