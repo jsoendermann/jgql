@@ -2,17 +2,20 @@ import * as React from 'react'
 const hoistNonReactStatic = require('hoist-non-react-statics')
 
 import { Consumer } from './context'
-import { JgqlClient } from './client'
+import { SendRequestFunction } from './client'
 
 export const withJgqlManual = <P extends object>(
-  WrappedComponent: React.ComponentType<P & { jgql: JgqlClient }>,
+  WrappedComponent: React.ComponentType<
+    P & { sendRequest: SendRequestFunction }
+  >,
 ) => {
   const JgqlEnhancedComponent = (props: P) => (
     <Consumer>
-      {client => <WrappedComponent {...props} jgql={client} />}
+      {sendRequest => <WrappedComponent {...props} sendRequest={sendRequest} />}
     </Consumer>
   )
 
   hoistNonReactStatic(JgqlEnhancedComponent, WrappedComponent)
+
   return JgqlEnhancedComponent
 }

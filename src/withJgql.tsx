@@ -1,97 +1,113 @@
 import * as React from 'react'
 const hoistNonReactStatic = require('hoist-non-react-statics')
 
-import { JgqlClient } from './client'
+import { SendRequestFunction } from './client'
 import { withJgqlManual } from './withJgqlManual'
 
 type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>
 type ComponentType<P> = React.ComponentType<P>
 type StatelessComponent<P> = React.StatelessComponent<P>
+export type VariableGetter<V> = () => V | Promise<V>
 
-export interface JgqlEnhancedFetchingComponentDataProps<
-  D extends object = object
-> {
-  loadingState: 'INITIAL' | 'LOADING' | 'SUCCESS' | 'ERROR'
-  error: Error | null
-  data: D | null
+export interface InitialState {
+  state: 'INITIAL'
 }
-export interface JgqlEnhancedFetchingComponentFetchDataProps<
-  V extends object = object
-> {
-  fetchData: (variables?: V) => void
+export interface LoadingState {
+  state: 'LOADING'
 }
-export interface JgqlEnhancedFetchingComponentProps<
-  D extends object = object,
-  V extends object = object
->
-  extends JgqlEnhancedFetchingComponentDataProps<D>,
-    JgqlEnhancedFetchingComponentFetchDataProps<V> {}
+export interface SuccessState<D extends object> {
+  state: 'SUCCESS'
+  response: D
+}
+export interface ErrorState {
+  state: 'ERROR'
+  error: Error
+}
+export type JgqlData<D extends object> =
+  | InitialState
+  | LoadingState
+  | SuccessState<D>
+  | ErrorState
 
-export interface OptionsType<V extends object = object> {
-  autofetch?: boolean
-  variables?: () => V | PromiseLike<V>
-  resetDataAtStartOfFetch?: boolean
+export interface JgqlDataProp<D extends object> {
+  data?: JgqlData<D>
+}
+export interface FetchDataProps<V extends object> {
+  refetchData?: (variables?: V) => void
+  registerVariableGetter?: (getter: VariableGetter<V>) => void
+  sendRequest?: SendRequestFunction
+}
+export type JgqlProps<D extends object, V extends object> = JgqlDataProp<D> &
+  FetchDataProps<V>
+
+export interface OptionsType<V extends object> {
+  dontAutofetch?: boolean
+  getVariables?: VariableGetter<V>
 }
 
 export const withJgql = <D extends object = object, V extends object = object>(
-  query: string,
+  query?: string,
   options?: OptionsType<V>,
 ) => <
-  PropsWithJgql extends JgqlEnhancedFetchingComponentProps<D, V>,
-  Props extends object = Omit<
-    PropsWithJgql,
-    keyof JgqlEnhancedFetchingComponentProps<D, V>
-  >
+  PP extends JgqlProps<D, V>,
+  P extends object = Omit<PP, keyof JgqlProps<D, V>>
 >(
-  WrappedComponent: ComponentType<PropsWithJgql>,
-): StatelessComponent<Props> => {
+  WrappedComponent: ComponentType<PP>,
+): StatelessComponent<P> => {
   class JgqlEnhancedFetchingComponent extends React.Component<
-    Props & { jgql: JgqlClient },
-    JgqlEnhancedFetchingComponentDataProps
+    P & { sendRequest: SendRequestFunction },
+    JgqlData<D>
   > {
-    state: JgqlEnhancedFetchingComponentDataProps<D> = {
-      loadingState: 'INITIAL',
-      error: null,
-      data: null,
+    private variableGetter: VariableGetter<V> | null = null
+
+    state: JgqlData<D> = {
+      state: 'INITIAL',
     }
 
     componentDidMount() {
-      if (options && options.autofetch) {
-        this.fetchData()
+      if (!(options && options.dontAutofetch)) {
+        this.refetchData()
       }
     }
 
-    fetchData = (variables?: any) => {
-      const newState: Partial<JgqlEnhancedFetchingComponentDataProps<D>> = {
-        loadingState: 'LOADING',
-        error: null,
+    registerVariableGetter = (getter: VariableGetter<V>) => {
+      this.variableGetter = getter
+    }
+
+    refetchData = (variables?: any) => {
+      if (!query) {
+        return
       }
 
-      if (options && options.resetDataAtStartOfFetch) {
-        newState.data = null
+      const newState: any = {
+        type: 'LOADING',
       }
 
-      // TODO Fix type
-      this.setState(newState as any, async () => {
+      this.setState(newState, async () => {
         let vars: V
         if (variables) {
           vars = variables
-        } else if (options && options.variables) {
-          vars = await options.variables()
+        } else if (this.variableGetter) {
+          vars = await this.variableGetter()
+        } else if (options && options.getVariables) {
+          vars = await options.getVariables()
         } else {
           vars = {} as V
         }
 
-        this.props
-          .jgql<any, any>(query, vars)
-          .then(data =>
-            this.setState({
-              loadingState: 'SUCCESS',
-              data,
-              error: null,
-            }),
-          )
-          .catch(error => this.setState({ loadingState: 'ERROR', error }))
+        try {
+          const data = await this.props.sendRequest<D, V>(query, vars)
+
+          this.setState({
+            state: 'SUCCESS',
+            response: data,
+          })
+        } catch (error) {
+          this.setState({
+            state: 'ERROR',
+            error,
+          })
+        }
       })
     }
 
@@ -99,8 +115,10 @@ export const withJgql = <D extends object = object, V extends object = object>(
       return (
         <WrappedComponent
           {...this.props}
-          {...this.state}
-          fetchData={this.fetchData}
+          data={this.state}
+          refetchData={this.refetchData}
+          registerVariableGetter={this.registerVariableGetter}
+          sendRequest={this.props.sendRequest}
         />
       )
     }

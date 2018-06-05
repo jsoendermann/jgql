@@ -1,15 +1,17 @@
 import * as React from 'react'
 
-import { JgqlClient } from './client'
+import { SendRequestFunction } from './client'
 
-const { Provider, Consumer } = React.createContext<JgqlClient>(() => {
+const { Provider, Consumer } = React.createContext<SendRequestFunction>(() => {
   throw new Error('Invalid jgql client')
 })
-export { Consumer }
+
 export interface JgqlProviderProps {
-  jgqlClient: JgqlClient
+  sendRequest: SendRequestFunction
   children?: any
 }
-export const JgqlProvider = ({ jgqlClient, children }: JgqlProviderProps) => (
-  <Provider value={jgqlClient}>{children}</Provider>
+const JgqlProvider = ({ sendRequest, children }: JgqlProviderProps) => (
+  <Provider value={sendRequest}>{children}</Provider>
 )
+
+export { Consumer, JgqlProvider }
