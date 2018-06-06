@@ -80,7 +80,7 @@ export const withJgql = <D extends object = object, V extends object = object>(
       }
 
       const newState: any = {
-        type: 'LOADING',
+        state: 'LOADING',
       }
 
       this.setState(newState, async () => {
