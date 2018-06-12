@@ -1,7 +1,7 @@
 import * as React from 'react'
 const hoistNonReactStatic = require('hoist-non-react-statics')
 
-import { SendRequestFunction } from './client'
+import { SendRequestFunction } from './sendRequestFunction'
 import { withJgqlManual } from './withJgqlManual'
 
 type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>
@@ -21,7 +21,7 @@ export interface SuccessState<D extends object> {
 }
 export interface ErrorState {
   state: 'ERROR'
-  error: Error
+  errorMessage: string
 }
 export type JgqlData<D extends object> =
   | InitialState
@@ -43,6 +43,14 @@ export type JgqlProps<D extends object, V extends object> = JgqlDataProp<D> &
 export interface OptionsType<V extends object> {
   dontAutofetch?: boolean
   getVariables?: VariableGetter<V>
+}
+
+export interface RefetchDataParams<
+  D extends object,
+  V extends object = object
+> {
+  variables?: V
+  processData?: (data: D) => D | Promise<D>
 }
 
 export const withJgql = <D extends object = object, V extends object = object>(
@@ -74,7 +82,10 @@ export const withJgql = <D extends object = object, V extends object = object>(
       this.variableGetter = getter
     }
 
-    refetchData = (variables?: any) => {
+    refetchData = ({
+      variables,
+      processData,
+    }: RefetchDataParams<D, V> = {}) => {
       if (!query) {
         return
       }
@@ -98,14 +109,21 @@ export const withJgql = <D extends object = object, V extends object = object>(
         try {
           const data = await this.props.sendRequest<D, V>(query, vars)
 
+          let processedData: D
+          if (processData) {
+            processedData = await processData(data)
+          } else {
+            processedData = data
+          }
+
           this.setState({
             state: 'SUCCESS',
-            response: data,
+            response: processedData,
           })
         } catch (error) {
           this.setState({
             state: 'ERROR',
-            error,
+            errorMessage: error.message,
           })
         }
       })

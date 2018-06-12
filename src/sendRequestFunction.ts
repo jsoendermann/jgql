@@ -16,7 +16,7 @@ export interface Params {
 
 const augmentRequestDefault = async (request: AxiosRequestConfig) => request
 const processResponseDefault = async (response: any) => response
-const processErrorDefault = async (error: Error) => error
+const processErrorDefault = async (error: Error) => error.message
 
 export const createSendRequestFunction = ({
   url,
@@ -25,6 +25,7 @@ export const createSendRequestFunction = ({
   processError = processErrorDefault,
 }: Params): SendRequestFunction => async <
   R extends object = object,
+  E = any,
   V extends object = object
 >(
   query: string,

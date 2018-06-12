@@ -2,7 +2,7 @@ import * as React from 'react'
 const hoistNonReactStatic = require('hoist-non-react-statics')
 
 import { Consumer } from './context'
-import { SendRequestFunction } from './client'
+import { SendRequestFunction } from './sendRequestFunction'
 
 export const withJgqlManual = <P extends object>(
   WrappedComponent: React.ComponentType<

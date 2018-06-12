@@ -1,6 +1,6 @@
 import * as React from 'react'
 
-import { SendRequestFunction } from './client'
+import { SendRequestFunction } from './sendRequestFunction'
 
 const { Provider, Consumer } = React.createContext<SendRequestFunction>(() => {
   throw new Error('Invalid jgql client')
