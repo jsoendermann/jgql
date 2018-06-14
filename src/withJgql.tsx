@@ -95,18 +95,18 @@ export const withJgql = <D extends object = object, V extends object = object>(
       }
 
       this.setState(newState, async () => {
-        let vars: V
-        if (variables) {
-          vars = variables
-        } else if (this.variableGetter) {
-          vars = await this.variableGetter()
-        } else if (options && options.getVariables) {
-          vars = await options.getVariables()
-        } else {
-          vars = {} as V
-        }
-
         try {
+          let vars: V
+          if (variables) {
+            vars = variables
+          } else if (this.variableGetter) {
+            vars = await this.variableGetter()
+          } else if (options && options.getVariables) {
+            vars = await options.getVariables()
+          } else {
+            vars = {} as V
+          }
+
           const data = await this.props.sendRequest<D, V>(query, vars)
 
           let processedData: D
