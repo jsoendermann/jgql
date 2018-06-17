@@ -3,6 +3,7 @@ export { AxiosRequestConfig as RequestConfig } from 'axios'
 export {
   SendRequestFunction,
   createSendRequestFunction,
+  JgqlError,
 } from './sendRequestFunction'
 export {
   withJgql,
@@ -11,4 +12,4 @@ export {
   RefetchDataParams,
 } from './withJgql'
 export { JgqlProvider } from './context'
-export { gql } from './gql-noop'
+export { gql } from './gql'

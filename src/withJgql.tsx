@@ -1,7 +1,7 @@
 import * as React from 'react'
 const hoistNonReactStatic = require('hoist-non-react-statics')
 
-import { SendRequestFunction } from './sendRequestFunction'
+import { SendRequestFunction, JgqlError } from './sendRequestFunction'
 import { withJgqlManual } from './withJgqlManual'
 
 type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>
@@ -21,7 +21,7 @@ export interface SuccessState<D extends object> {
 }
 export interface ErrorState {
   state: 'ERROR'
-  errorMessage: string
+  error: JgqlError
 }
 export type JgqlData<D extends object> =
   | InitialState
@@ -68,14 +68,22 @@ export const withJgql = <D extends object = object, V extends object = object>(
   > {
     private variableGetter: VariableGetter<V> | null = null
 
+    private isCompMounted = false
+
     state: JgqlData<D> = {
       state: 'INITIAL',
     }
 
     componentDidMount() {
+      this.isCompMounted = true
+
       if (!(options && options.dontAutofetch)) {
         this.refetchData()
       }
+    }
+
+    componentWillUnmount() {
+      this.isCompMounted = false
     }
 
     registerVariableGetter = (getter: VariableGetter<V>) => {
@@ -92,6 +100,10 @@ export const withJgql = <D extends object = object, V extends object = object>(
 
       const newState: any = {
         state: 'LOADING',
+      }
+
+      if (!this.isCompMounted) {
+        return
       }
 
       this.setState(newState, async () => {
@@ -116,14 +128,22 @@ export const withJgql = <D extends object = object, V extends object = object>(
             processedData = data
           }
 
+          if (!this.isCompMounted) {
+            return
+          }
+
           this.setState({
             state: 'SUCCESS',
             response: processedData,
           })
         } catch (error) {
+          if (!this.isCompMounted) {
+            return
+          }
+
           this.setState({
             state: 'ERROR',
-            errorMessage: error.message,
+            error,
           })
         }
       })

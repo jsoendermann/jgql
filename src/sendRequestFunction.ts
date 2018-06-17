@@ -1,9 +1,58 @@
 import axios, { AxiosError, AxiosRequestConfig } from 'axios'
+import { GraphQLError } from 'graphql'
 
-export type SendRequestFunction = <R extends object, V extends object>(
+export type SendRequestFunction = <R extends object, V extends object = object>(
   query: string,
   variables?: V,
 ) => Promise<R>
+
+export class JgqlError extends Error {
+  private _graphQLErrors: null | GraphQLError[] = null
+  private _responseError: null | { status: number; data: string } = null
+
+  constructor(errorData: any) {
+    super()
+    if (Array.isArray(errorData)) {
+      this._graphQLErrors = errorData.map(d => new GraphQLError(d))
+    }
+    if (errorData.response) {
+      this._responseError = {
+        status: errorData.response.status,
+        data: errorData.response.data,
+      }
+    }
+
+    this.message = this.toString()
+    ;(this as any).__proto__ = JgqlError.prototype
+  }
+
+  get type() {
+    if (this._graphQLErrors) {
+      return 'GRAPHQL'
+    } else if (this._responseError) {
+      return 'RESPONSE'
+    }
+    return 'REQUEST'
+  }
+
+  get graphQLErrors() {
+    return this._graphQLErrors
+  }
+
+  get responseError() {
+    return this._responseError
+  }
+
+  toString() {
+    if (this._graphQLErrors) {
+      return this._graphQLErrors.map(e => e.message).join('\n')
+    } else if (this._responseError) {
+      return this._responseError.data
+    } else {
+      return "Couldn't connect, make sure you are online."
+    }
+  }
+}
 
 export interface Params {
   url: string
@@ -11,7 +60,7 @@ export interface Params {
     request: AxiosRequestConfig,
   ) => AxiosRequestConfig | Promise<AxiosRequestConfig>
   processResponse?: (response: any) => any | Promise<any>
-  processError?: (error: Error) => Error | Promise<Error>
+  processError?: (error: JgqlError) => any | Promise<any>
 }
 
 const augmentRequestDefault = async (request: AxiosRequestConfig) => request
@@ -36,14 +85,12 @@ export const createSendRequestFunction = ({
   try {
     const { data: response } = await axios(augmentedRequest)
     if (response.errors) {
-      throw new Error(response.errors.map((e: any) => e.message).join('\n'))
-    } else if (response.data) {
-      const processedResponse: R = await processResponse(response.data)
-      return processedResponse
+      throw response.errors
     }
-    throw new Error('Response has neither data nor errors')
+    const processedResponse: R = await processResponse(response.data)
+    return processedResponse
   } catch (error) {
-    const processedError = await processError(error)
-    throw processedError
+    const jgqlError = new JgqlError(error)
+    throw processError(jgqlError)
   }
 }
