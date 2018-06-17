@@ -9,17 +9,19 @@ export type SendRequestFunction = <R extends object, V extends object = object>(
 export class JgqlError extends Error {
   private _graphQLErrors: null | GraphQLError[] = null
   private _responseError: null | { status: number; data: string } = null
+  private _errorMessage: null | string = null
 
   constructor(errorData: any) {
     super()
     if (Array.isArray(errorData)) {
       this._graphQLErrors = errorData.map(d => new GraphQLError(d))
-    }
-    if (errorData.response) {
+    } else if (errorData.response) {
       this._responseError = {
         status: errorData.response.status,
         data: errorData.response.data,
       }
+    } else if (typeof errorData === 'string') {
+      this._errorMessage = errorData
     }
 
     this.message = this.toString()
@@ -31,6 +33,8 @@ export class JgqlError extends Error {
       return 'GRAPHQL'
     } else if (this._responseError) {
       return 'RESPONSE'
+    } else if (this._errorMessage) {
+      return 'STRING'
     }
     return 'REQUEST'
   }
@@ -48,6 +52,8 @@ export class JgqlError extends Error {
       return this._graphQLErrors.map(e => e.message).join('\n')
     } else if (this._responseError) {
       return this._responseError.data
+    } else if (this._errorMessage) {
+      return this._errorMessage
     } else {
       return "Couldn't connect, make sure you are online."
     }
