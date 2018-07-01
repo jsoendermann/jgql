@@ -93,8 +93,8 @@ export const createSendRequestFunction = ({
     if (response.errors) {
       throw response.errors
     }
-    const processedResponse: R = await processResponse(response.data)
-    return processedResponse
+    const processedResponse = await processResponse(response)
+    return processedResponse.data
   } catch (error) {
     const jgqlError = new JgqlError(error)
     throw processError(jgqlError)
