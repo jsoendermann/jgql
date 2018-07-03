@@ -61,7 +61,7 @@ export class JgqlError extends Error {
 }
 
 export interface Params {
-  url: string
+  getUrl: () => string
   augmentRequest?: (
     request: AxiosRequestConfig,
   ) => AxiosRequestConfig | Promise<AxiosRequestConfig>
@@ -74,7 +74,7 @@ const processResponseDefault = async (response: any) => response
 const processErrorDefault = async (error: Error) => error.message
 
 export const createSendRequestFunction = ({
-  url,
+  getUrl,
   augmentRequest = augmentRequestDefault,
   processResponse = processResponseDefault,
   processError = processErrorDefault,
@@ -86,7 +86,7 @@ export const createSendRequestFunction = ({
   query: string,
   variables?: V,
 ) => {
-  const request = { method: 'POST', url, data: { query, variables } }
+  const request = { method: 'POST', url: getUrl(), data: { query, variables } }
   const augmentedRequest = await augmentRequest(request)
   try {
     const { data: response } = await axios(augmentedRequest)
