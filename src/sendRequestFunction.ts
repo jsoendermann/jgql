@@ -13,18 +13,25 @@ export class JgqlError extends Error {
 
   constructor(errorData: any) {
     super()
-    if (Array.isArray(errorData)) {
-      this._graphQLErrors = errorData.map(d => new GraphQLError(d))
-    } else if (errorData.response) {
-      this._responseError = {
-        status: errorData.response.status,
-        data: errorData.response.data,
+
+    if (errorData.response) {
+      if (
+        errorData.response.data &&
+        Array.isArray(errorData.response.data.errors)
+      ) {
+        this._graphQLErrors = errorData.response.data.errors.map(
+          (d: any) => new GraphQLError(d.message),
+        )
+      } else {
+        this._responseError = {
+          status: errorData.response.status,
+          data: errorData.response.data,
+        }
       }
     } else if (typeof errorData === 'string') {
       this._errorMessage = errorData
     }
 
-    this.message = this.toString()
     ;(this as any).__proto__ = JgqlError.prototype
   }
 
