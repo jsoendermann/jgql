@@ -32,6 +32,7 @@ export class JgqlError extends Error {
       this._errorMessage = errorData
     }
 
+    this.message = this.toString()
     ;(this as any).__proto__ = JgqlError.prototype
   }
 
